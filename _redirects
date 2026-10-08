@@ -1,0 +1,3 @@
+# Netlify: send /api calls to the backend on Render.
+# Replace the address below with YOUR Render service address.
+/api/*  https://tradewithalix-api.onrender.com/api/:splat  200

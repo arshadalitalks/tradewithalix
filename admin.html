@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin · Trade with Alix</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head><body><div class="wrap">
+<nav class="anav"><b>tradewithalix admin</b><div><a class="btn ghost sm" href="/">View site</a><button class="sm hide" id="out" onclick="delete localStorage.twa;location.reload()">Log out</button></div></nav>
+
+<section id="login" class="card" style="max-width:400px;margin-top:24px">
+  <h2>Admin login</h2>
+  <form id="lf"><label for="e">Email</label><input id="e" type="email" required><label for="p">Password</label><input id="p" type="password" required>
+  <p class="err" id="le" role="alert"></p><button>Log in</button></form>
+</section>
+
+<div id="panel" class="hide">
+<section><h2>Publish a note</h2><form class="card" id="pf">
+  <label for="t">Title</label><input id="t" required>
+  <label for="b">Text</label><textarea id="b" rows="5" required></textarea>
+  <label><input type="checkbox" id="pub" style="width:auto;margin-right:8px" checked>Show on the public homepage (untick for members only)</label>
+  <p class="err" id="pe" role="alert"></p><button>Publish note</button></form>
+  <div id="plist" class="posts" style="margin-top:16px"></div></section>
+<section><h2>Leads</h2><div class="card scroll"><table id="leads"></table></div></section>
+<section><h2>Linked accounts</h2><div class="card scroll"><table id="accs"></table></div></section>
+<section><h2>Payments</h2><div class="card scroll"><table id="pays"></table></div></section>
+<section><h2>Users</h2><div class="card scroll"><table id="users"></table></div></section>
+</div></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(p,method,body){const r=await fetch('/api'+p,{method:method||(body?'POST':'GET'),headers:{'Content-Type':'application/json',Authorization:'Bearer '+localStorage.twa},body:body&&JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.error||'Something went wrong.');return d}
+$('#lf').onsubmit=async e=>{e.preventDefault();try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#e').value,password:$('#p').value})});const d=await r.json();if(!r.ok)throw new Error(d.error);if(d.user.role!=='admin')throw new Error('This account is not an admin.');localStorage.twa=d.token;load()}catch(x){$('#le').textContent=x.message}};
+$('#pf').onsubmit=async e=>{e.preventDefault();try{await api('/admin/posts','POST',{title:$('#t').value,body:$('#b').value,public:$('#pub').checked});e.target.reset();$('#pub').checked=true;$('#pe').textContent='';load()}catch(x){$('#pe').textContent=x.message}};
+async function setAcc(id,s){await api('/admin/accounts/'+id,'PUT',{status:s});load()}
+async function del(path){if(confirm('Delete this?')){await api(path,'DELETE');load()}}
+async function load(){
+  if(!localStorage.twa)return;
+  try{const d=await api('/admin/data');
+    $('#login').classList.add('hide');$('#panel').classList.remove('hide');$('#out').classList.remove('hide');
+    $('#plist').innerHTML=d.posts.map(p=>`<article class="card post"><h3>${esc(p.title)} <span class="tag">${p.public?'Public':'Members'}</span></h3><p>${esc(p.body)}</p><button class="sm del" onclick="del('/admin/posts/${p.id}')">Delete note</button></article>`).join('');
+    $('#leads').innerHTML='<tr><th>Name</th><th>Email</th><th>Message</th><th>Date</th><th></th></tr>'+(d.leads.map(l=>`<tr><td>${esc(l.name)}</td><td>${esc(l.email)}</td><td>${esc(l.message)}</td><td>${new Date(l.created).toLocaleDateString()}</td><td><button class="sm del" onclick="del('/admin/leads/${l.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="5" class="mute">No leads yet.</td></tr>');
+    $('#accs').innerHTML='<tr><th>Name</th><th>Broker</th><th>Account</th><th>Status</th><th></th></tr>'+(d.accounts.map(a=>`<tr><td>${esc(a.name)}<br><span class="mute">${esc(a.email)}</span></td><td>${esc(a.broker)}</td><td>${esc(a.number)}${a.server?'<br><span class="mute">'+esc(a.server)+'</span>':''}</td><td>${esc(a.status)}</td><td><button class="sm" onclick="setAcc(${a.id},'approved')">Approve</button> <button class="sm del" onclick="setAcc(${a.id},'rejected')">Reject</button></td></tr>`).join('')||'<tr><td colspan="5" class="mute">No requests yet.</td></tr>');
+    $('#pays').innerHTML='<tr><th>Name</th><th>Plan</th><th>Amount</th><th>Status</th><th>Date</th></tr>'+(d.payments.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.plan)}</td><td>₹${p.amount}</td><td>${p.status}</td><td>${new Date(p.created).toLocaleDateString()}</td></tr>`).join('')||'<tr><td colspan="5" class="mute">No payments yet.</td></tr>');
+    $('#users').innerHTML='<tr><th>Name</th><th>Email</th><th>Role</th></tr>'+d.users.map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${u.role}</td></tr>`).join('');
+  }catch{delete localStorage.twa}}
+load();
+</script></body></html>

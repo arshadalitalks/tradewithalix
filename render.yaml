@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: tradewithalix-api
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - { key: MONGODB_URI, sync: false }
+      - { key: JWT_SECRET, generateValue: true }
+      - { key: ADMIN_EMAIL, sync: false }
+      - { key: ADMIN_PASSWORD, sync: false }
+      - { key: RAZORPAY_KEY_ID, sync: false }
+      - { key: RAZORPAY_KEY_SECRET, sync: false }
+      - { key: SITE_URL, sync: false }
+      - { key: MAIL_FROM, sync: false }
+      - { key: BREVO_API_KEY, sync: false }
+      - { key: NOTIFY_EMAIL, sync: false }
+      - { key: NODE_ENV, value: production }
